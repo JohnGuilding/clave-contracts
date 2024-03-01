@@ -17,7 +17,11 @@ import type {
     ClaveImplementation,
     ClaveRegistry,
     EOAValidator,
+    EmailRecoveryModule,
+    EncoderTest,
+    MockDKIMRegsitry,
     MockExecutionHook,
+    MockGroth16Verifier,
     MockImplementation,
     MockModule,
     MockStable,
@@ -186,6 +190,86 @@ export async function deploySocialRecoveryModule(
     return await hre.ethers.getContractAt(
         'SocialRecoveryModule',
         await socialRecoveryModule.getAddress(),
+        wallet,
+    );
+}
+
+export async function deployMockDKIMRegsitry(
+    wallet: Wallet,
+): Promise<MockDKIMRegsitry> {
+    const deployer: Deployer = new Deployer(hre, wallet);
+    const mockDKIMRegsitryArtifact = await deployer.loadArtifact(
+        'MockDKIMRegsitry',
+    );
+
+    const mockDKIMRegsitry = await deployer.deploy(
+        mockDKIMRegsitryArtifact,
+        [],
+        undefined,
+        [],
+    );
+
+    return await hre.ethers.getContractAt(
+        'MockDKIMRegsitry',
+        await mockDKIMRegsitry.getAddress(),
+        wallet,
+    );
+}
+
+export async function deployMockGroth16Verifier(
+    wallet: Wallet,
+): Promise<MockGroth16Verifier> {
+    const deployer: Deployer = new Deployer(hre, wallet);
+    const mockGroth16VerifierArtifact = await deployer.loadArtifact(
+        'MockGroth16Verifier',
+    );
+
+    const mockGroth16Verifier = await deployer.deploy(
+        mockGroth16VerifierArtifact,
+        [],
+        undefined,
+        [],
+    );
+
+    return await hre.ethers.getContractAt(
+        'MockGroth16Verifier',
+        await mockGroth16Verifier.getAddress(),
+        wallet,
+    );
+}
+
+export async function deployEmailRecoveryModule(
+    wallet: Wallet,
+    verifier: MockGroth16Verifier,
+    defaultDkimRegistry: MockDKIMRegsitry
+): Promise<EmailRecoveryModule> {
+    const deployer: Deployer = new Deployer(hre, wallet);
+    const recoveryModuleArtifact = await deployer.loadArtifact('EmailRecoveryModule');
+
+    const name = "EmailRecoveryModule";
+    const version = "1";
+    const minTimelock = 1;
+    const minThreshold = 0;
+    const verifierAddress = await verifier.getAddress();
+    const defaultDkimRegistryAddress = await defaultDkimRegistry.getAddress();
+
+    const recoveryModule = await deployer.deploy(
+        recoveryModuleArtifact,
+        [
+            name,
+            version,
+            minTimelock,
+            minThreshold,
+            verifierAddress,
+            defaultDkimRegistryAddress
+        ],
+        undefined,
+        [],
+    );
+
+    return await hre.ethers.getContractAt(
+        'EmailRecoveryModule',
+        await recoveryModule.getAddress(),
         wallet,
     );
 }

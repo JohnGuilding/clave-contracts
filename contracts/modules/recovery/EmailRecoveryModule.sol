@@ -89,7 +89,16 @@ contract EmailRecoveryModule is BaseRecovery {
             revert Errors.MODULE_NOT_ADDED_CORRECTLY();
         }
 
-        RecoveryConfig memory config = abi.decode(initData, (RecoveryConfig));
+        (
+            uint128 _timelock,
+            uint128 _threshold,
+            bytes32[] memory _guardianHashes
+        ) = abi.decode(initData, (uint128, uint128, bytes32[]));
+        RecoveryConfig memory config = RecoveryConfig(
+            _timelock,
+            _threshold,
+            _guardianHashes
+        );
 
         emit Inited(msg.sender);
 
@@ -199,8 +208,6 @@ contract EmailRecoveryModule is BaseRecovery {
                 revert Errors.INVALID_GUARDIAN();
             }
 
-            ///////////////////////////////////////
-            // zkemail recovery code block {
             if (
                 !this.isDKIMPublicKeyHashValid(
                     recoveringAddress,
@@ -215,7 +222,10 @@ contract EmailRecoveryModule is BaseRecovery {
                 );
             }
 
-            bytes32[2] memory publicKey = abi.decode(recoveryData.newOwner, (bytes32[2]));
+            bytes32[2] memory publicKey = abi.decode(
+                recoveryData.newOwner,
+                (bytes32[2])
+            );
 
             uint256[5] memory publicSignals = [
                 uint256(uint160(recoveringAddress)),
@@ -225,16 +235,9 @@ contract EmailRecoveryModule is BaseRecovery {
                 uint256(data.dkimPublicKeyHash)
             ];
 
-            if (verifier.verifyProof(
-                data.a,
-                data.b,
-                data.c,
-                publicSignals
-            )) {
+            if (verifier.verifyProof(data.a, data.b, data.c, publicSignals)) {
                 validGuardians++;
             }
-            // } end of zkemail recovery code block
-            ///////////////////////////////////////
 
             unchecked {
                 i++;
